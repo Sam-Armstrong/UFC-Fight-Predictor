@@ -326,6 +326,9 @@ class Data:
                             r = 2
                         if x == 'L':
                             r = 1
+                        if x == 'D':
+                            r = 3
+                            print('Draw!')
 
                 # Finds the date that the fight took place
                 date_element = soup.findAll('a', href = True, attrs = {'class': 'b-link'})[0]
@@ -616,9 +619,12 @@ class Data:
                     if result == 2:
                         result_array = [0, 1]
                         opposite_array = [1, 0]
-                    else:
+                    elif result == 1:
                         result_array = [1, 0]
                         opposite_array = [0, 1]
+                    else: # Draw
+                        result_array = [0.5, 0.5]
+                        opposite_array = [0.5, 0.5]
 
                     # Concatenates the full training row with the data from both fighters and the 'one-hot' label array
                     full_list1 = fighter1_useful_data + fighter2_useful_data + result_array
