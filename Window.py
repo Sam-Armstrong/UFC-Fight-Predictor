@@ -39,6 +39,7 @@ class Window:
             training_data = pandas.read_csv('TrainingData.csv')
             predictor.train(training_data)
         except Exception as e:
+            print(e)
             print('The training data could not be created. ')
 
     # Scrapes all the past fights and fighter data from the internet

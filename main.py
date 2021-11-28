@@ -47,6 +47,8 @@ def scrapeData():
     message_label['text'] = 'Successfully scraped the data.'
     time.sleep(3)
     message_label['text'] = ''
+    global data
+    data = Data() # Fixes bug where the data does not immediately update after scraping
 
 
 # Creates the Tkinter window
@@ -90,7 +92,7 @@ odds_button.place(x = 208, y = 150)
 training_button = Button(tk, text = 'Create Training Data', command = getTrainingData)
 training_button.place(x = 30, y = 215)
 
-scrape_button = Button(tk, text = 'Scrape Data', command = scrapeData)
+scrape_button = Button(tk, text = 'Re-Scrape Data', command = scrapeData)
 scrape_button.place(x = 30, y = 250)
 
 tk.mainloop()
