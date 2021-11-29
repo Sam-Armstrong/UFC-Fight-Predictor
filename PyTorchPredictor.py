@@ -62,7 +62,6 @@ class Predictor:
     # Method for making predictions using the model
     def predict(self, prediction_data): # prediction_data2 ??
         self.model.eval()
-        #prediction_data = self.sc.fit_transform(prediction_data)
         prediction_data = torch.from_numpy(prediction_data).float().to(self.device)
         prediction_data -= self.means
         prediction_data /= self.stds
@@ -119,14 +118,6 @@ class Predictor:
 
             with torch.no_grad():
                 for batch_idx, (data, labels) in enumerate(dataset):
-                    # labels = data[:, [41, 42]].float()
-                    # data = data[:, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-                    #                 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]].float()
-
-                    # labels = data[:, [40, 41]].float()
-                    # data = data[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-                    #                 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]].float()
-
                     data = data.float().to(device = self.device)
                     labels = labels.to(device = self.device)
 
@@ -151,8 +142,6 @@ class Predictor:
                 scores = self.model(data) # Runs a forward pass of the model for all the data
                 loss = criterion(scores.float(), labels.float()).float() # Calculates the loss of the forward pass using the loss function
                 train_loss += loss
-                # print(scores[0].float().cpu().detach().numpy())
-                # print(labels[0].float().cpu().detach().numpy())
 
                 optimizer.zero_grad() # Resets the optimizer gradients to zero for each batch
                 loss.backward() # Backpropagates the network using the loss to calculate the local gradients
