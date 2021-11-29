@@ -8,6 +8,9 @@ progress bar on the interface, while the GUI can acces services such as making p
 
 from tkinter import *
 import datetime, pandas
+import numpy as np
+import torch
+from sklearn.preprocessing import StandardScaler
 
 class Window:
     def __init__(self, window, progress):
@@ -21,13 +24,20 @@ class Window:
         try:
             prediction_data1 = (data.findFighterStats(name1, date)) + (data.findFighterStats(name2, date))
             prediction_data2 = (data.findFighterStats(name2, date)) + (data.findFighterStats(name1, date))
-            prediction = predictor.predict(prediction_data1, prediction_data2)
-            chance1 = str(round(prediction[0] * 100, 2))
-            chance2 = str(round(prediction[1] * 100, 2))
+            prediction_data1 = np.array([prediction_data1])
+            prediction1 = predictor.predict(prediction_data1)
+            prediction_data2 = np.array([prediction_data2])
+            prediction2 = predictor.predict(prediction_data2)
+
+            print(prediction1[0])
+            print(prediction2[0])
+            chance1 = round((prediction1[0][0].item() + prediction2[0][1].item()) * 50, 1)
+            chance2 = round((prediction1[0][1].item() + prediction2[0][0].item()) * 50, 1)
 
             return chance1, chance2
 
-        except:
+        except Exception as e:
+            print(e)
             print('Prediction not possible.')
 
     # Creates the training data from the known data and re-trains the neural network

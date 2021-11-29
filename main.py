@@ -6,7 +6,7 @@ Description: Creates the GUI and allows the user to interact with the data (re-s
 the training data) or the deep learning model (making predictions).
 """
 
-from Predictor import Predictor
+from PyTorchPredictor import Predictor
 from Data import Data
 from Window import Window
 from tkinter import *
@@ -18,19 +18,19 @@ training_data = data.training_data
 
 predictor = Predictor() # Instantiates a Predictor object which is used for interacting with the neural network model
 
-# Only trains the model if some stored training data is accessible
-try:
-    predictor.train(training_data)
-except:
-    pass
+# Trains the model
+# try:
+#     predictor.train(training_data)
+# except:
+#     pass
 
 # Gets the chance of each fighter winning using the predictor (through the window)
 def getChances():
     name1 = str(fighter_name1.get())
     name2 = str(fighter_name2.get())
     chance1, chance2 = window.getChances(name1, name2, data, predictor)
-    chance_label1['text'] = chance1 + '%'
-    chance_label2['text'] = chance2 + '%'
+    chance_label1['text'] = str(chance1) + '%'
+    chance_label2['text'] = str(chance2) + '%'
 
 # Produces the training data
 def getTrainingData():
@@ -47,8 +47,7 @@ def scrapeData():
     message_label['text'] = 'Successfully scraped the data.'
     time.sleep(3)
     message_label['text'] = ''
-    global data
-    data = Data() # Fixes bug where the data does not immediately update after scraping
+    # Fix bug where the data does not immediately update after scraping
 
 
 # Creates the Tkinter window
