@@ -1,3 +1,10 @@
+"""
+Author: Sam Armstrong
+Date: 2021
+
+Description: Architecture and training of a deep residual PyTorch model for predicting the chance of winning for any two fighters
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -15,30 +22,78 @@ class Model(nn.Module):
         self.gelu = nn.GELU()
         self.softmax = nn.Softmax(dim = -1)
         
-        self.fc1 = nn.Linear(40, 120, bias = False) # , bias = False ??
-        self.fc2 = nn.Linear(120, 120, bias = False)
-        self.fc3 = nn.Linear(120, 2, bias = False)
+        self.fc1 = nn.Linear(40, 240) # , bias = False ??
+        self.fc2 = nn.Linear(240, 240)
+        self.fc3 = nn.Linear(240, 240)
+        self.fc4 = nn.Linear(240, 240)
+        self.fc5 = nn.Linear(240, 240)
+        self.fc6 = nn.Linear(240, 240)
+        self.fc7 = nn.Linear(240, 240)
+        self.fc8 = nn.Linear(240, 240)
+        self.fc9 = nn.Linear(240, 240)
+        #self.fc10 = nn.Linear(240, 2)
 
-        self.bn1 = nn.BatchNorm1d(120)
-        self.bn2 = nn.BatchNorm1d(120)
+        self.fc10 = nn.Linear(240, 40)
+        self.fc11 = nn.Linear(40, 2)
+
+        self.bn1 = nn.BatchNorm1d(240)
+        self.bn2 = nn.BatchNorm1d(240)
+        self.bn3 = nn.BatchNorm1d(240)
+        self.bn4 = nn.BatchNorm1d(240)
 
     def forward(self, x):
         x = self.dropout(x)
 
         x = self.fc1(x)
-        #x = self.bn1(x)
         x = self.selu(x)
 
-        x = self.dropout(x)
-
+        res = x.clone()
         x = self.fc2(x)
-        #x = self.bn2(x)
+        x = self.selu(x)
+        x = self.fc3(x)
         x = self.selu(x)
 
+        x += res
+        x = self.bn1(x)
+
+        res = x.clone()
         x = self.dropout(x)
 
-        x = self.fc3(x)
+        x = self.fc4(x)
+        x = self.selu(x)
+        x = self.fc5(x)
+        x = self.selu(x)
+
+        x += res
+        x = self.bn2(x)
+
+        res = x.clone()
+        x = self.dropout(x)
+
+        x = self.fc6(x)
+        x = self.selu(x)
+        x = self.fc7(x)
+        x = self.selu(x)
+
+        x += res
+        x = self.bn3(x)
+
+        res = x.clone()
+        x = self.dropout(x)
+
+        x = self.fc8(x)
+        x = self.selu(x)
+        x = self.fc9(x)
+        x = self.selu(x)
+
+        x += res
+        x = self.bn4(x)
+
+        x = self.fc10(x)
+        x = self.selu(x)
+        x = self.fc11(x)
         x = self.softmax(x)
+
         return x
 
 
@@ -73,14 +128,14 @@ class Predictor:
 
         self.model = Model().to(device = self.device)
 
-        num_epochs = 15
+        num_epochs = 40
 
         start_time = time.time()
         plot_data = np.empty((num_epochs), dtype = float)
 
         # The data is split into training data and labels later on
         X = training_data.iloc[:, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-             30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]].values
+                                   30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]].values
         y = training_data.iloc[:, [41, 42]].values
 
         X = torch.tensor(X)
@@ -96,19 +151,19 @@ class Predictor:
         for i in range(len(X)):
             train_data.append([X[i], y[i]])
 
+        #print(X.shape)
+
         train_set, val_set = torch.utils.data.random_split(train_data, [2500, X.shape[0] - 2500]) # Splits the training data into a train set and a validation set
 
-        #X = torch.from_numpy(X)
-
-        train_dataloader = torch.utils.data.DataLoader(train_set, batch_size = 200, shuffle = True, num_workers = 4)
-        val_dataloader = torch.utils.data.DataLoader(val_set, batch_size = 200, shuffle = False, num_workers = 4)
+        train_dataloader = torch.utils.data.DataLoader(train_set, batch_size = 500, shuffle = True, num_workers = 4)
+        val_dataloader = torch.utils.data.DataLoader(val_set, batch_size = 500, shuffle = False, num_workers = 4)
 
         params = []
         params += self.model.parameters()
 
-        criterion = nn.CrossEntropyLoss() #nn.MSELoss() #nn.CrossEntropyLoss()
-        optimizer = optim.Adam(params, lr = 1e-4, weight_decay = 1e-12)
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones = [32000, 48000], gamma = 0.1)
+        criterion = nn.MSELoss() #nn.MSELoss() #nn.CrossEntropyLoss()
+        optimizer = optim.Adam(params, lr = 1e-4, weight_decay = 1e-12) # 3e-5
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones = [50, 100], gamma = 0.5)
 
         # Checks the performance of the model on the test set
         def check_accuracy(dataset):
@@ -164,6 +219,7 @@ class Predictor:
 
             valid_accuracy = check_accuracy(val_dataloader)
             print(valid_accuracy, '% Validation Accuracy')
+            print('Validation Loss: ', valid_loss)
 
             plot_data[epoch] = valid_loss
 

@@ -606,35 +606,44 @@ class Data:
                     name1 = row[2].rstrip()
                     name2 = row[3].rstrip()
                     result = row[4]
+                    split_dec = row[5]
 
-                    # Doesn't include any fights that happened before 2010
-                    if int(date.split('/')[2]) < 2010:
-                        raise Exception()
+                    if days_since_fight > 75: # 0
+                        print(date)
+                        # Doesn't include any fights that happened before 2010
+                        if int(date.split('/')[2]) < 2010:
+                            raise Exception()
 
-                    # Finds the stats of the two fighters prior to the date of the given fight occuring
-                    fighter1_useful_data = self.findFighterStats(name1, date)
-                    fighter2_useful_data = self.findFighterStats(name2, date)
+                        # Finds the stats of the two fighters prior to the date of the given fight occuring
+                        fighter1_useful_data = self.findFighterStats(name1, date)
+                        fighter2_useful_data = self.findFighterStats(name2, date)
 
-                    # Produces a 'one-hot' array describing the outcome of the fight
-                    if result == 2:
-                        result_array = [0, 1]
-                        opposite_array = [1, 0]
-                    elif result == 1:
-                        result_array = [1, 0]
-                        opposite_array = [0, 1]
-                    else: # Draw
-                        result_array = [0.5, 0.5]
-                        opposite_array = [0.5, 0.5]
+                        # Produces a 'one-hot' array describing the outcome of the fight
+                        if result == 2 and split_dec == 1:
+                            result_array = [0.4, 0.6]
+                            opposite_array = [0.6, 0.4]
+                        elif result == 1 and split_dec == 1:
+                            result_array = [0.6, 0.4]
+                            opposite_array = [0.4, 0.6]
+                        elif result == 2:
+                            result_array = [0, 1]
+                            opposite_array = [1, 0]
+                        elif result == 1:
+                            result_array = [1, 0]
+                            opposite_array = [0, 1]
+                        else: # Draw
+                            result_array = [0.5, 0.5]
+                            opposite_array = [0.5, 0.5]
 
-                    # Concatenates the full training row with the data from both fighters and the 'one-hot' label array
-                    full_list1 = fighter1_useful_data + fighter2_useful_data + result_array
+                        # Concatenates the full training row with the data from both fighters and the 'one-hot' label array
+                        full_list1 = fighter1_useful_data + fighter2_useful_data + result_array
 
-                    # The training array is also reversed to help the model generalise to trends/reduce model overfitting
-                    full_list2 = fighter2_useful_data + fighter1_useful_data + opposite_array
+                        # The training array is also reversed to help the model generalise to trends/reduce model overfitting
+                        full_list2 = fighter2_useful_data + fighter1_useful_data + opposite_array
 
-                    # Both arrays are added to the training set
-                    all_data.append(full_list1)
-                    all_data.append(full_list2)
+                        # Both arrays are added to the training set
+                        all_data.append(full_list1)
+                        all_data.append(full_list2)
 
                 except:
                     # If there is not the data for four fights accessible for each of the fighters, the training row won't be created
