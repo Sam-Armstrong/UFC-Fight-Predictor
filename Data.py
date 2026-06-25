@@ -9,8 +9,11 @@ deep learning model.
 
 import bs4, requests, datetime, pandas
 
-# Calculates the days between a given date and the current date
+
 def calculateDaysSince(day, month, year):
+    """
+    Calculates the days between a given date and the current date
+    """
     a = datetime.date(int(year), int(month), int(day))
     b = datetime.date.today()
     days_since = b - a
@@ -48,7 +51,6 @@ class Data:
             self.training_data = pandas.read_csv('TrainingData.csv')
         except:
             self.training_data = None
-
 
     # Extracted method for finding the average stats of a fighter for the four most recent fights they had prior to a given date
     def findFighterStats(self, name1, date):
@@ -165,10 +167,10 @@ class Data:
 
         return fighter_useful_data
 
-
-
-    # Scrapes all the data for past fights from the internet and stores this in separate 'results' and 'stats' CSV files
     def getData(self, window):
+        """
+        Scrapes all the data for past fights from the internet and stores this in separate 'results' and 'stats' CSV files
+        """
         print('Scraping Data... (This could take up to a few hours)')
         inital_url = 'http://www.ufcstats.com/statistics/events/completed?page=all'
         page = requests.get(inital_url)
@@ -421,10 +423,10 @@ class Data:
 
         return self.fight_results, self.fight_stats
 
-
-
-    # Scrapes the data for each individual fighter from the internet and stores this in a CSV file
     def getFighterData(self, window):
+        """
+        Scrapes the data for each individual fighter from the internet and stores this in a CSV file
+        """
 
         def calculateAge(month, day, year):
             today = datetime.date.today()
@@ -573,10 +575,11 @@ class Data:
         self.fighter_data = fighters_dataframe
         print('Finished.')
 
-
-    # Creates a set of training data based upon the statistics of each fighter prior to a given fight,
-    # using the result of the fight as the training label
     def createTrainingData(self, window):
+        """
+        Creates a set of training data based upon the statistics of each fighter prior to a given fight,
+        using the result of the fight as the training label
+        """
         window.updateProgress(0)
 
         if len(self.fight_results) != 0 and len(self.fight_stats) != 0 and len(self.fighter_data) != 0:
