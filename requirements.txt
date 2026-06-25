@@ -1,0 +1,7 @@
+bs4
+matplotlib
+numpy
+pandas
+scikit-learn
+torch
+requests
