@@ -2,6 +2,7 @@ import bs4
 import datetime
 import os
 import pandas
+import string
 import time
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
@@ -291,7 +292,6 @@ def scrapePastFights(start_date=None, end_date=None):
     Optional start_date and end_date limit which events are scraped (inclusive).
     Accept date objects or strings in dd/mm/yyyy or 'Month DD, YYYY' format.
     """
-    print("Scraping Data... (This could take up to a few hours)")
 
     start_cutoff = parse_cutoff_date(start_date)
     end_cutoff = parse_cutoff_date(end_date)
@@ -302,8 +302,6 @@ def scrapePastFights(start_date=None, end_date=None):
         initial_url = "http://www.ufcstats.com/statistics/events/completed?page=all"
         soup = scraper.get_soup(initial_url, wait_selector="a.b-link.b-link_style_black")
         url_list = list()
-
-        print("Stage 1/4")
 
         latest_date = get_latest_scraped_date()
         all_events = parse_event_listing(soup)
@@ -321,7 +319,7 @@ def scrapePastFights(start_date=None, end_date=None):
         range_label = " ".join(range_parts)
 
         if latest_date is None:
-            print(f"Found {len(event_urls)} events (no existing CSV data)")
+            print(f"Found {len(event_urls)} events to scrape.")
         else:
             print(
                 f"Latest scraped date: {latest_date.strftime('%d/%m/%Y')} "
@@ -383,22 +381,6 @@ def scrapePastFights(start_date=None, end_date=None):
 
         all_info = list()
         all_stats = list()
-        month_labels = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ]
-
-        print(f"Stage 2/4 ({len(url_list)} fights)")
 
         for url in tqdm(url_list, desc="Scraping fights", unit="fight"):
             try:
@@ -514,7 +496,7 @@ def scrapePastFights(start_date=None, end_date=None):
                 raw_date = raw_date.replace("  ", "")
                 raw_date = raw_date.replace(",", "")
                 date_list = raw_date.split(" ")
-                month = month_labels.index(date_list[0]) + 1
+                month = datetime.datetime.strptime(date_list[0], "%B").month
                 day = date_list[1]
                 year = date_list[2]
 
@@ -644,53 +626,9 @@ def scrapeFighterData():
             "\n",
             "  ",
         ]
-        month_labels = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ]
-        allChars = [
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-            "g",
-            "h",
-            "i",
-            "j",
-            "k",
-            "l",
-            "m",
-            "n",
-            "o",
-            "p",
-            "q",
-            "r",
-            "s",
-            "t",
-            "u",
-            "v",
-            "w",
-            "x",
-            "y",
-            "z",
-        ]
         url_list = list()
 
-        print("Stage 3/4")
-
-        for c in tqdm(allChars, desc="Collecting fighter URLs", unit="letter"):
+        for c in tqdm(string.ascii_lowercase, desc="Collecting fighter URLs", unit="letter"):
             url = "http://www.ufcstats.com/statistics/fighters?char=%s&page=all" % c
             soup = scraper.get_soup(url, wait_selector="a.b-link.b-link_style_black")
             for a in soup.find_all("a", href=True, attrs={"class": "b-link b-link_style_black"}):
@@ -719,8 +657,6 @@ def scrapeFighterData():
                 "SubAvg",
             ]
         )
-
-        print(f"Stage 4/4 ({len(url_list)} fighters)")
 
         for url in tqdm(url_list, desc="Scraping fighters", unit="fighter"):
             soup = scraper.get_soup(url, wait_selector="h2")
@@ -779,10 +715,7 @@ def scrapeFighterData():
                         monthStr = str(dateList[0])
                         day = int(dateList[1])
                         year = int(dateList[2])
-                        month = 1
-                        for x in range(0, len(month_labels)):
-                            if month_labels[x] == monthStr:
-                                month = x + 1
+                        month = datetime.datetime.strptime(monthStr, "%b").month
                         collected_data = int(calculateAge(month, day, year))
 
                     if "Weight:" in str(collected_data):
@@ -817,5 +750,5 @@ def scrapeFighterData():
 
 
 if __name__ == "__main__":
-    scrapePastFights(start_date="1/1/2010", end_date="31/12/2010")
+    scrapePastFights(start_date="1/1/2010")
     scrapeFighterData()
