@@ -1,0 +1,51 @@
+name: Update fighter data
+
+on:
+  schedule:
+    - cron: "0 7 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-fighter-data
+  cancel-in-progress: false
+
+jobs:
+  scrape-fighters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install scraper dependencies
+        run: |
+          pip install beautifulsoup4 lxml pandas playwright tqdm
+
+      - name: Install Playwright browser
+        run: playwright install chromium --with-deps
+
+      - name: Scrape fighter profiles
+        run: python -c "from scraper import scrapeFighterData; scrapeFighterData()"
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "Sam-Armstrong"
+          git config user.email "samuel_e_armstrong@yahoo.co.uk"
+          git add data/FighterData.csv
+
+          if git diff --staged --quiet; then
+            echo "No fighter data changes to commit."
+          else
+            git commit -m "chore: update fighter data"
+            git push
+          fi
