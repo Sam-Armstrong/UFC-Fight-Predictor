@@ -2,6 +2,8 @@ import bs4
 import datetime
 import os
 import pandas
+import time
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 from tqdm import tqdm
 
@@ -97,6 +99,43 @@ def filter_new_events(events, latest_date):
     return [(url, event_date) for url, event_date in events if event_date > latest_date]
 
 
+def parse_cutoff_date(date_value):
+    """
+    Parse an optional cutoff date from a date object or string.
+
+    Strings may use dd/mm/yyyy (CSV format) or 'Month DD, YYYY' (site format).
+    """
+    if date_value is None:
+        return None
+    if isinstance(date_value, datetime.date):
+        return date_value
+
+    date_text = str(date_value).strip()
+    for parser in (parse_csv_date, parse_site_event_date):
+        try:
+            return parser(date_text)
+        except ValueError:
+            continue
+
+    raise ValueError(
+        f"Could not parse date {date_value!r}; use dd/mm/yyyy or 'Month DD, YYYY'"
+    )
+
+
+def filter_events_by_date_range(events, start_date=None, end_date=None):
+    """Keep only events within the optional inclusive start/end date range."""
+    filtered = events
+    if start_date is not None:
+        filtered = [
+            (url, event_date) for url, event_date in filtered if event_date >= start_date
+        ]
+    if end_date is not None:
+        filtered = [
+            (url, event_date) for url, event_date in filtered if event_date <= end_date
+        ]
+    return filtered
+
+
 def sort_fight_results_chronologically(results_dataframe):
     """Return fight results with the oldest fights first."""
     sorted_results = results_dataframe.copy()
@@ -168,15 +207,26 @@ def load_fight_csv(path):
     return dataframe
 
 
+BLOCKED_RESOURCE_TYPES = {"image", "media", "font"}
+
+
 class BrowserScraper:
     """
     Fetches pages through a headless Chromium browser so JavaScript challenges
     (e.g. ufcstats.com bot checks) can run before HTML is parsed.
     """
 
-    def __init__(self, headless=True, timeout_ms=120_000):
+    def __init__(
+        self,
+        headless=True,
+        timeout_ms=15_000,
+        max_retries=2,
+        retry_delay_s=2.0,
+    ):
         self.headless = headless
         self.timeout_ms = timeout_ms
+        self.max_retries = max_retries
+        self.retry_delay_s = retry_delay_s
         self._playwright = None
         self._browser = None
         self._page = None
@@ -185,6 +235,12 @@ class BrowserScraper:
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(headless=self.headless)
         self._page = self._browser.new_page()
+        self._page.route(
+            "**/*",
+            lambda route: route.abort()
+            if route.request.resource_type in BLOCKED_RESOURCE_TYPES
+            else route.continue_(),
+        )
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -193,23 +249,54 @@ class BrowserScraper:
         if self._playwright:
             self._playwright.stop()
 
-    def get_soup(self, url, wait_selector=None):
+    def get_soup(
+        self,
+        url,
+        wait_selector=None,
+        timeout_ms=None,
+        retries=None,
+        selector_state="attached",
+    ):
         """
         Load a URL in the browser and return a BeautifulSoup object for the
         rendered HTML. Optionally wait for a CSS selector before parsing.
         """
-        self._page.goto(url, wait_until="domcontentloaded", timeout=self.timeout_ms)
-        if wait_selector:
-            self._page.wait_for_selector(wait_selector, timeout=self.timeout_ms)
-        return bs4.BeautifulSoup(self._page.content(), "lxml")
+        timeout = self.timeout_ms if timeout_ms is None else timeout_ms
+        attempts = (self.max_retries if retries is None else retries) + 1
+        last_error = None
+
+        for attempt in range(attempts):
+            try:
+                self._page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+                if wait_selector:
+                    self._page.wait_for_selector(
+                        wait_selector,
+                        timeout=timeout,
+                        state=selector_state,
+                    )
+                return bs4.BeautifulSoup(self._page.content(), "lxml")
+            except PlaywrightTimeoutError as error:
+                last_error = error
+                if attempt < attempts - 1:
+                    time.sleep(self.retry_delay_s)
+                    continue
+                raise last_error from None
 
 
-def scrapePastFights():
+def scrapePastFights(start_date=None, end_date=None):
     """
     Scrapes all the data for past fights from the internet and stores this in
     separate results and stats CSV files.
+
+    Optional start_date and end_date limit which events are scraped (inclusive).
+    Accept date objects or strings in dd/mm/yyyy or 'Month DD, YYYY' format.
     """
     print("Scraping Data... (This could take up to a few hours)")
+
+    start_cutoff = parse_cutoff_date(start_date)
+    end_cutoff = parse_cutoff_date(end_date)
+    if start_cutoff is not None and end_cutoff is not None and start_cutoff > end_cutoff:
+        raise ValueError("start_date must be on or before end_date")
 
     def run(scraper):
         initial_url = "http://www.ufcstats.com/statistics/events/completed?page=all"
@@ -221,16 +308,33 @@ def scrapePastFights():
         latest_date = get_latest_scraped_date()
         all_events = parse_event_listing(soup)
         new_events = filter_new_events(all_events, latest_date)
+        events_before_range_filter = len(new_events)
+        new_events = filter_events_by_date_range(new_events, start_cutoff, end_cutoff)
         new_events.sort(key=lambda event: event[1])
         event_urls = [url for url, _ in new_events]
+
+        range_parts = list()
+        if start_cutoff is not None:
+            range_parts.append(f"from {start_cutoff.strftime('%d/%m/%Y')}")
+        if end_cutoff is not None:
+            range_parts.append(f"through {end_cutoff.strftime('%d/%m/%Y')}")
+        range_label = " ".join(range_parts)
 
         if latest_date is None:
             print(f"Found {len(event_urls)} events (no existing CSV data)")
         else:
             print(
                 f"Latest scraped date: {latest_date.strftime('%d/%m/%Y')} "
-                f"({len(all_events) - len(event_urls)} events skipped, "
+                f"({len(all_events) - events_before_range_filter} events skipped, "
                 f"{len(event_urls)} new events to scrape)"
+            )
+
+        if range_label:
+            skipped_by_range = events_before_range_filter - len(new_events)
+            print(
+                f"Date range filter ({range_label}): "
+                f"{skipped_by_range} events outside range skipped, "
+                f"{len(event_urls)} events to scrape"
             )
 
         if not event_urls:
@@ -300,8 +404,13 @@ def scrapePastFights():
             try:
                 soup = scraper.get_soup(
                     url,
-                    wait_selector="p.b-fight-details__table-text",
+                    wait_selector="div.b-fight-details",
+                    timeout_ms=30_000,
+                    retries=1,
                 )
+                if not soup.find("p", class_="b-fight-details__table-text"):
+                    tqdm.write(f"Skipping (no detailed stats): {url}")
+                    continue
 
                 stats = list()
                 fighter1_stats = list()
@@ -396,6 +505,8 @@ def scrapePastFights():
                 soup = scraper.get_soup(
                     date_url,
                     wait_selector="li.b-list__box-list-item",
+                    timeout_ms=30_000,
+                    retries=1,
                 )
                 raw_date = soup.find_all("li", attrs={"class": "b-list__box-list-item"})[0].text
                 raw_date = raw_date.replace("\n", "")
@@ -459,9 +570,10 @@ def scrapePastFights():
                 all_stats.append(fighter1_stats)
                 all_stats.append(fighter2_stats)
 
-            except Exception:
-                tqdm.write("Passing")
-                pass
+            except PlaywrightTimeoutError:
+                tqdm.write(f"Skipping (page timeout): {url}")
+            except Exception as e:
+                tqdm.write(f"Passing: {url} ({e})")
 
         for data in all_info:
             df_len = len(results_dataframe)
@@ -705,5 +817,5 @@ def scrapeFighterData():
 
 
 if __name__ == "__main__":
-    scrapePastFights()
+    scrapePastFights(start_date="1/1/2010", end_date="31/12/2010")
     scrapeFighterData()
