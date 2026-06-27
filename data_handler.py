@@ -1,11 +1,15 @@
 import datetime
 import pandas
-from typing import Union
+from typing import Optional, Union
 
 from exceptions import MinFightsException, MissingDataException
-
-
-TRAINING_DATA_CSV = "data/TrainingData.csv"
+from globals import (
+    FIGHTER_DATA_CSV,
+    MIN_FIGHTS,
+    RESULTS_CSV,
+    STATS_CSV,
+    TRAINING_DATA_CSV,
+)
 
 
 def load_csv(path: str) -> Union[pandas.DataFrame, None]:
@@ -40,12 +44,12 @@ def calculate_days_since(day: str, month: str, year: str) -> int:
 
 class Data:
     def __init__(self):
-        self.fight_results = load_csv("data/FightResults.csv")
-        self.fight_stats = load_csv("data/FightStats.csv")
-        self.fighter_data = load_csv("data/FighterData.csv")
+        self.fight_results = load_csv(RESULTS_CSV)
+        self.fight_stats = load_csv(STATS_CSV)
+        self.fighter_data = load_csv(FIGHTER_DATA_CSV)
         self.training_data = load_csv(TRAINING_DATA_CSV)
 
-    def find_fighter_stats(self, name: str, date: str, fights: int = 4) -> list:
+    def find_fighter_stats(self, name: str, date: str, min_fights: int = 3) -> list:
         """
         Find the average stats of a fighter for the four most recent fights they had prior to a given date
         """
@@ -103,7 +107,7 @@ class Data:
             year = date_list[2]
             days_since = calculate_days_since(day, month, year)
 
-            if days_since > days_since_fight and i <= fights:
+            if days_since > days_since_fight and i <= min_fights:
                 i += 1
                 time += int(row["Time"])
                 knockdown += int(row["Knockdowns"])
@@ -123,9 +127,9 @@ class Data:
                 ground_strikes += int(row["Ground Strikes"])
                 ground_strikes_taken += int(row["Ground Strikes Taken"])
 
-        if i <= fights:
-            # doesn't allow the fighter to be compared if they have had fewer than n fights
-            raise MinFightsException(f"Fighter {name} had fewer than {fights} fights at {date}")
+        if i <= min_fights:
+            # doesn't allow the fighter to be compared if they have had fewer than min_fights fights
+            raise MinFightsException(f"Fighter {name} had fewer than {min_fights} fights at {date}")
 
         # calculates the stats for the fighter, averaged over the total time they have spent in fights (per minute)
         knockdowns_pm = round((knockdown / (time / 60)), 4)
@@ -167,13 +171,15 @@ class Data:
 
         return fighter_useful_data
 
-    def create_training_data(self, min_fights: int = 4):
+    def create_training_data(self, min_fights: Optional[int] = None):
         """
         Creates a set of training data based upon the statistics of each fighter prior to a given fight,
         using the result of the fight as the training label
 
         Args:
-            min_fights: The minimum number of fights a fighter must have had to be considered for training
+            min_fights: int or None
+                The minimum number of fights a fighter must have had to be considered for training.
+                Default to MIN_FIGHTS from globals.py
         """
         if (
             not self.fight_results or
@@ -181,6 +187,8 @@ class Data:
             not self.fighter_data
         ):
             raise MissingDataException()
+
+        if min_fights is None: min_fights = MIN_FIGHTS
 
         training_data = pandas.DataFrame(
             columns=[

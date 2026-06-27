@@ -8,9 +8,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 from tqdm import tqdm
 
-
-RESULTS_CSV = "data/FightResults.csv"
-STATS_CSV = "data/FightStats.csv"
+from globals import FIGHTER_DATA_CSV, RESULTS_CSV, STATS_CSV
 
 
 def parse_site_event_date(date_text):
@@ -785,7 +783,7 @@ def scrape_fighter_data():
                 clean_fighter_name
             )
 
-        fighters_dataframe.to_csv("data/FighterData.csv")
+        fighters_dataframe.to_csv(FIGHTER_DATA_CSV)
 
     with BrowserScraper() as scraper:
         run(scraper)
