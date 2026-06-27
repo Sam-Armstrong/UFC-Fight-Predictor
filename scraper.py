@@ -292,7 +292,7 @@ class BrowserScraper:
                 raise last_error from None
 
 
-def scrapePastFights(start_date=None, end_date=None):
+def scrape_past_fights(start_date=None, end_date=None):
     """
     Scrapes all the data for past fights from the internet and stores this in
     separate results and stats CSV files.
@@ -622,13 +622,13 @@ def scrapePastFights(start_date=None, end_date=None):
         run(scraper)
 
 
-def scrapeFighterData():
+def scrape_fighter_data():
     """
     Scrapes the data for each individual fighter from the internet and stores
     this in a CSV file.
     """
 
-    def calculateAge(month, day, year):
+    def calculate_age(month, day, year):
         today = datetime.date.today()
         return today.year - year - ((today.month, today.day) < (month, day))
 
@@ -756,7 +756,7 @@ def scrapeFighterData():
                         day = int(dateList[1])
                         year = int(dateList[2])
                         month = datetime.datetime.strptime(monthStr, "%b").month
-                        collected_data = int(calculateAge(month, day, year))
+                        collected_data = int(calculate_age(month, day, year))
 
                     if "Weight:" in str(collected_data):
                         collected_data = collected_data.replace("Weight:", "")
@@ -792,5 +792,5 @@ def scrapeFighterData():
 
 
 if __name__ == "__main__":
-    scrapePastFights(start_date="1/1/2010", end_date="31/1/2021")
-    scrapeFighterData()
+    scrape_past_fights(start_date="1/1/2010", end_date="31/1/2021")
+    scrape_fighter_data()

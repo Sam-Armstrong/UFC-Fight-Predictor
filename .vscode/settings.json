@@ -1,6 +1,7 @@
 {
     "cSpell.enabledFileTypes": {
         "github-actions-workflow": false,
-        "csv": false
+        "csv": false,
+        "ignore": false
     }
 }

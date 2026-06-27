@@ -35,7 +35,7 @@ jobs:
         run: playwright install chromium --with-deps
 
       - name: Scrape fighter profiles
-        run: python -c "from scraper import scrapeFighterData; scrapeFighterData()"
+        run: python -c "from scraper import scrape_fighter_data; scrape_fighter_data()"
 
       - name: Commit and push changes
         run: |
