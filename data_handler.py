@@ -2,27 +2,33 @@
 Author: Sam Armstrong
 Date: 2020-2021
 
-Description: Class that is responsible for handling all the data required for the predictions. These responsibilities include 
-scraping the data from the web, storing and interacting with this data in CSV format, and creating the training data for the 
+Description: Class that is responsible for handling all the data required for the predictions. These responsibilities include
+scraping the data from the web, storing and interacting with this data in CSV format, and creating the training data for the
 deep learning model.
 """
 
 import datetime
 import pandas
+from typing import Union
 
 
 TRAINING_DATA_CSV = "data/TrainingData.csv"
 
 
-def load_csv(path):
-    """Load a CSV file, dropping any legacy pandas index column."""
-    dataframe = pandas.read_csv(path)
-    if "Unnamed: 0" in dataframe.columns:
-        dataframe = dataframe.drop(columns=["Unnamed: 0"])
-    return dataframe
+def load_csv(path: str) -> Union[pandas.DataFrame, None]:
+    """
+    Load a CSV file, dropping any legacy pandas index column.
+    """
+    try:
+        dataframe = pandas.read_csv(path)
+        if "Unnamed: 0" in dataframe.columns:
+            dataframe = dataframe.drop(columns=["Unnamed: 0"])
+        return dataframe
+    except FileNotFoundError:
+        return None
 
 
-def calculateDaysSince(day, month, year):
+def calculateDaysSince(day: str, month: str, year: str) -> int:
     """
     Calculates the days between a given date and the current date
     """
@@ -31,8 +37,8 @@ def calculateDaysSince(day, month, year):
     days_since = b - a
     days_since = str(days_since)
 
-    if len(days_since.split(' ')) > 1:
-        days_since = int(days_since.split(' ')[0])
+    if len(days_since.split(" ")) > 1:
+        days_since = int(days_since.split(" ")[0])
     else:
         days_since = 0
 
@@ -50,17 +56,23 @@ class Data:
             raise Exception("One or more of the necessary data files is not present.")
 
     # Extracted method for finding the average stats of a fighter for the four most recent fights they had prior to a given date
-    def findFighterStats(self, name1, date):
+    def findFighterStats(self, name: str, date: str) -> list:
         # Calculates the number of days since the fight took place
-        try:
-            days_since_fight = calculateDaysSince(date.split('/')[0], date.split('/')[1], date.split('/')[2])
-        except:
-            days_since_fight = calculateDaysSince(date.split('-')[2], date.split('-')[1], date.split('-')[0])
+        if "/" in date:
+            days_since_fight = calculateDaysSince(
+                date.split("/")[0], date.split("/")[1], date.split("/")[2]
+            )
+        else:
+            days_since_fight = calculateDaysSince(
+                date.split("-")[2], date.split("-")[1], date.split("-")[0]
+            )
 
         # Collects the relevant data and information
-        fighter_data = self.fight_stats[self.fight_stats["Name"].str.contains(name1)]
+        fighter_data = self.fight_stats[self.fight_stats["Name"].str.contains(name)]
         fighter_useful_data = list()
-        fighter_raw_info = self.fighter_data[self.fighter_data["Name"].str.contains(name1)]
+        fighter_raw_info = self.fighter_data[
+            self.fighter_data["Name"].str.contains(name)
+        ]
         fighter_info = fighter_raw_info.iloc[0]
         height = fighter_info["Height"]
         reach = fighter_info["Reach"]
@@ -168,19 +180,57 @@ class Data:
         Creates a set of training data based upon the statistics of each fighter prior to a given fight,
         using the result of the fight as the training label
         """
-        if len(self.fight_results) != 0 and len(self.fight_stats) != 0 and len(self.fighter_data) != 0:
+        if (
+            len(self.fight_results) != 0
+            and len(self.fight_stats) != 0
+            and len(self.fighter_data) != 0
+        ):
             training_data = pandas.DataFrame(
-                columns = ['Height1', 'Reach1', 'Age 1', 'Knockdowns PM 1', 'Gets Knocked Down PM 1',
-                         'Sig Strikes Landed PM 1', 'Sig Strikes Attempted PM 1', 'Sig Strikes Absorbed PM 1',
-                         'Strikes Landed PM 1', 'Strikes Attempted PM 1', 'Strikes Absorbed PM 1', 'Strike Accuracy 1',
-                         'Takedowns PM 1', 'Takedown Attempts PM 1', 'Gets Taken Down PM 1', 'Submission Attempts PM 1',
-                         'Clinch Strikes PM 1', 'Clinch Strikes Taken PM 1', 'Grounds Strikes PM 1',
-                         'Ground Strikes Taken PM 1', 'Height 2', 'Reach 2', 'Age 2', 'Knockdowns PM 2',
-                         'Gets Knocked Down PM 2', 'Sig Strikes Landed PM 2', 'Sig Strikes Attempted PM 2',
-                         'Sig Strikes Absorbed PM 2', 'Strikes Landed PM 2', 'Strikes Attempted PM 2',
-                         'Strikes Absorbed PM 2', 'Strike Accuracy 2', 'Takedowns PM 2', 'Takedown Attempts PM 2',
-                         'Gets Taken Down PM 2', 'Submission Attempts PM 2', 'Clinch Strikes PM 2',
-                         'Clinch Strikes Taken PM 2', 'Grounds Strikes PM 2', 'Ground Strikes Taken PM 2', 'Win', 'Loss'])
+                columns=[
+                    "Height1",
+                    "Reach1",
+                    "Age 1",
+                    "Knockdowns PM 1",
+                    "Gets Knocked Down PM 1",
+                    "Sig Strikes Landed PM 1",
+                    "Sig Strikes Attempted PM 1",
+                    "Sig Strikes Absorbed PM 1",
+                    "Strikes Landed PM 1",
+                    "Strikes Attempted PM 1",
+                    "Strikes Absorbed PM 1",
+                    "Strike Accuracy 1",
+                    "Takedowns PM 1",
+                    "Takedown Attempts PM 1",
+                    "Gets Taken Down PM 1",
+                    "Submission Attempts PM 1",
+                    "Clinch Strikes PM 1",
+                    "Clinch Strikes Taken PM 1",
+                    "Grounds Strikes PM 1",
+                    "Ground Strikes Taken PM 1",
+                    "Height 2",
+                    "Reach 2",
+                    "Age 2",
+                    "Knockdowns PM 2",
+                    "Gets Knocked Down PM 2",
+                    "Sig Strikes Landed PM 2",
+                    "Sig Strikes Attempted PM 2",
+                    "Sig Strikes Absorbed PM 2",
+                    "Strikes Landed PM 2",
+                    "Strikes Attempted PM 2",
+                    "Strikes Absorbed PM 2",
+                    "Strike Accuracy 2",
+                    "Takedowns PM 2",
+                    "Takedown Attempts PM 2",
+                    "Gets Taken Down PM 2",
+                    "Submission Attempts PM 2",
+                    "Clinch Strikes PM 2",
+                    "Clinch Strikes Taken PM 2",
+                    "Grounds Strikes PM 2",
+                    "Ground Strikes Taken PM 2",
+                    "Win",
+                    "Loss",
+                ]
+            )
             all_data = list()
 
             # Loops through all the fight results and attempts to find the stats for each of the fighters from their
@@ -189,20 +239,22 @@ class Data:
             for index, row in self.fight_results.iterrows():
                 try:
                     date = str(row["Date"])
-                    days_since_fight = calculateDaysSince(date.split("/")[0], date.split("/")[1], date.split("/")[2])
-                    name1 = str(row["Fighter 1"]).strip()
+                    days_since_fight = calculateDaysSince(
+                        date.split("/")[0], date.split("/")[1], date.split("/")[2]
+                    )
+                    name = str(row["Fighter 1"]).strip()
                     name2 = str(row["Fighter 2"]).strip()
                     result = row["Result"]
                     split_dec = row["Split Dec?"]
 
-                    if days_since_fight > 75: # 0
+                    if days_since_fight > 75:  # 0
                         print(date)
                         # Doesn't include any fights that happened before 2010
                         if int(date.split("/")[2]) < 2010:
                             raise Exception()
 
                         # Finds the stats of the two fighters prior to the date of the given fight occuring
-                        fighter1_useful_data = self.findFighterStats(name1, date)
+                        fighter1_useful_data = self.findFighterStats(name, date)
                         fighter2_useful_data = self.findFighterStats(name2, date)
 
                         # Produces a 'one-hot' array describing the outcome of the fight
@@ -218,15 +270,19 @@ class Data:
                         elif result == 1:
                             result_array = [1, 0]
                             opposite_array = [0, 1]
-                        else: # Draw
+                        else:  # Draw
                             result_array = [0.5, 0.5]
                             opposite_array = [0.5, 0.5]
 
                         # Concatenates the full training row with the data from both fighters and the 'one-hot' label array
-                        full_list1 = fighter1_useful_data + fighter2_useful_data + result_array
+                        full_list1 = (
+                            fighter1_useful_data + fighter2_useful_data + result_array
+                        )
 
                         # The training array is also reversed to help the model generalise to trends/reduce model overfitting
-                        full_list2 = fighter2_useful_data + fighter1_useful_data + opposite_array
+                        full_list2 = (
+                            fighter2_useful_data + fighter1_useful_data + opposite_array
+                        )
 
                         # Both arrays are added to the training set
                         all_data.append(full_list1)
@@ -246,4 +302,6 @@ class Data:
             print("Finished.")
 
         else:
-            print('One or more of the necessary data files is not present. Please scrape the data using the interface button. ')
+            print(
+                "One or more of the necessary data files is not present. Please scrape the data using the interface button. "
+            )

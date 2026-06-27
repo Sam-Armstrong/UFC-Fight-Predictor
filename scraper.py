@@ -66,7 +66,9 @@ def parse_event_listing(soup):
     events = list()
     seen_urls = set()
 
-    for link in soup.find_all("a", href=True, attrs={"class": "b-link b-link_style_black"}):
+    for link in soup.find_all(
+        "a", href=True, attrs={"class": "b-link b-link_style_black"}
+    ):
         url = link["href"]
         if "event-details" not in url:
             continue
@@ -128,7 +130,9 @@ def filter_events_by_date_range(events, start_date=None, end_date=None):
     filtered = events
     if start_date is not None:
         filtered = [
-            (url, event_date) for url, event_date in filtered if event_date >= start_date
+            (url, event_date)
+            for url, event_date in filtered
+            if event_date >= start_date
         ]
     if end_date is not None:
         filtered = [
@@ -164,10 +168,12 @@ def reorder_fight_stats_to_results(results_dataframe, stats_dataframe):
         fighter2 = str(result["Fighter 2"]).strip()
 
         fighter1_match = stats_remaining[
-            (stats_remaining["_date"] == fight_date) & (stats_remaining["Name"] == fighter1)
+            (stats_remaining["_date"] == fight_date)
+            & (stats_remaining["Name"] == fighter1)
         ]
         fighter2_match = stats_remaining[
-            (stats_remaining["_date"] == fight_date) & (stats_remaining["Name"] == fighter2)
+            (stats_remaining["_date"] == fight_date)
+            & (stats_remaining["Name"] == fighter2)
         ]
 
         if fighter1_match.empty or fighter2_match.empty:
@@ -238,9 +244,11 @@ class BrowserScraper:
         self._page = self._browser.new_page()
         self._page.route(
             "**/*",
-            lambda route: route.abort()
-            if route.request.resource_type in BLOCKED_RESOURCE_TYPES
-            else route.continue_(),
+            lambda route: (
+                route.abort()
+                if route.request.resource_type in BLOCKED_RESOURCE_TYPES
+                else route.continue_()
+            ),
         )
         return self
 
@@ -295,12 +303,18 @@ def scrapePastFights(start_date=None, end_date=None):
 
     start_cutoff = parse_cutoff_date(start_date)
     end_cutoff = parse_cutoff_date(end_date)
-    if start_cutoff is not None and end_cutoff is not None and start_cutoff > end_cutoff:
+    if (
+        start_cutoff is not None
+        and end_cutoff is not None
+        and start_cutoff > end_cutoff
+    ):
         raise ValueError("start_date must be on or before end_date")
 
     def run(scraper):
         initial_url = "http://www.ufcstats.com/statistics/events/completed?page=all"
-        soup = scraper.get_soup(initial_url, wait_selector="a.b-link.b-link_style_black")
+        soup = scraper.get_soup(
+            initial_url, wait_selector="a.b-link.b-link_style_black"
+        )
         url_list = list()
 
         latest_date = get_latest_scraped_date()
@@ -400,7 +414,9 @@ def scrapePastFights(start_date=None, end_date=None):
                 info_data = list()
                 split_dec = 0
 
-                text1 = soup.find_all("i", attrs={"class": "b-fight-details__text-item_first"})
+                text1 = soup.find_all(
+                    "i", attrs={"class": "b-fight-details__text-item_first"}
+                )
                 text2 = soup.find_all(
                     "i",
                     attrs={
@@ -411,7 +427,9 @@ def scrapePastFights(start_date=None, end_date=None):
                 if "Decision - S" in text1[0].text or len(text2) > 1:
                     split_dec = 1
 
-                raw_stats = soup.find_all("p", attrs={"class": "b-fight-details__table-text"})
+                raw_stats = soup.find_all(
+                    "p", attrs={"class": "b-fight-details__table-text"}
+                )
                 for element in raw_stats:
                     stat = element.text
                     stat = stat.replace("\n", "")
@@ -422,7 +440,9 @@ def scrapePastFights(start_date=None, end_date=None):
                 name2 = clean_fighter_name(stats[1])
 
                 new_fight_info = list()
-                fight_info = soup.find_all("i", attrs={"class": "b-fight-details__text-item"})
+                fight_info = soup.find_all(
+                    "i", attrs={"class": "b-fight-details__text-item"}
+                )
                 for info in fight_info:
                     info = info.text
                     info = info.replace("\n", "")
@@ -468,7 +488,9 @@ def scrapePastFights(start_date=None, end_date=None):
                 ground_strikes1 = stats[36 + (int(rounds) * 20)].split(" of ")[0]
                 ground_strikes2 = stats[37 + (int(rounds) * 20)].split(" of ")[0]
 
-                win_loss = soup.find_all("div", attrs={"class": "b-fight-details__person"})
+                win_loss = soup.find_all(
+                    "div", attrs={"class": "b-fight-details__person"}
+                )
                 for w in win_loss:
                     l = w.text.replace("\n", "")
                     l = l.split(" ")
@@ -482,7 +504,9 @@ def scrapePastFights(start_date=None, end_date=None):
                             r = 3
                             tqdm.write("Draw!")
 
-                date_element = soup.find_all("a", href=True, attrs={"class": "b-link"})[0]
+                date_element = soup.find_all("a", href=True, attrs={"class": "b-link"})[
+                    0
+                ]
                 date_url = date_element["href"]
                 soup = scraper.get_soup(
                     date_url,
@@ -490,7 +514,9 @@ def scrapePastFights(start_date=None, end_date=None):
                     timeout_ms=30_000,
                     retries=1,
                 )
-                raw_date = soup.find_all("li", attrs={"class": "b-list__box-list-item"})[0].text
+                raw_date = soup.find_all(
+                    "li", attrs={"class": "b-list__box-list-item"}
+                )[0].text
                 raw_date = raw_date.replace("\n", "")
                 raw_date = raw_date.replace("Date:", "")
                 raw_date = raw_date.replace("  ", "")
@@ -628,10 +654,14 @@ def scrapeFighterData():
         ]
         url_list = list()
 
-        for c in tqdm(string.ascii_lowercase, desc="Collecting fighter URLs", unit="letter"):
+        for c in tqdm(
+            string.ascii_lowercase, desc="Collecting fighter URLs", unit="letter"
+        ):
             url = "http://www.ufcstats.com/statistics/fighters?char=%s&page=all" % c
             soup = scraper.get_soup(url, wait_selector="a.b-link.b-link_style_black")
-            for a in soup.find_all("a", href=True, attrs={"class": "b-link b-link_style_black"}):
+            for a in soup.find_all(
+                "a", href=True, attrs={"class": "b-link b-link_style_black"}
+            ):
                 new_url = a["href"]
                 if new_url not in url_list:
                     url_list.append(new_url)
@@ -663,7 +693,9 @@ def scrapeFighterData():
 
             data = list()
             for h2 in soup.find_all("h2"):
-                raw_fighter_name = h2.find("span", attrs={"class": "b-content__title-highlight"}).text
+                raw_fighter_name = h2.find(
+                    "span", attrs={"class": "b-content__title-highlight"}
+                ).text
 
                 for i in range(0, len(not_allowed)):
                     if not_allowed[i] in raw_fighter_name:
@@ -671,7 +703,9 @@ def scrapeFighterData():
 
                 name = clean_fighter_name(raw_fighter_name)
 
-                record = h2.find("span", attrs={"class": "b-content__title-record"}).text
+                record = h2.find(
+                    "span", attrs={"class": "b-content__title-record"}
+                ).text
                 for i in [" ", "\n", "Record:"]:
                     if i in record:
                         record = record.replace(i, "")
@@ -693,7 +727,9 @@ def scrapeFighterData():
             for ul in soup.find_all("ul"):
                 for li in ul.find_all(
                     "li",
-                    attrs={"class": "b-list__box-list-item b-list__box-list-item_type_block"},
+                    attrs={
+                        "class": "b-list__box-list-item b-list__box-list-item_type_block"
+                    },
                 ):
                     collected_data = li.text
 
@@ -701,7 +737,9 @@ def scrapeFighterData():
                         if not_allowed[i] in collected_data:
                             collected_data = collected_data.replace(not_allowed[i], "")
 
-                    if ("Height:" in str(collected_data)) and ("--" not in str(collected_data)):
+                    if ("Height:" in str(collected_data)) and (
+                        "--" not in str(collected_data)
+                    ):
                         collected_data = collected_data.replace("Height:", "")
                         measurement = collected_data.split("'")
 
@@ -709,7 +747,9 @@ def scrapeFighterData():
                         cm2 = int(measurement[1]) * 2.54
                         collected_data = round((cm1 + cm2), 1)
 
-                    if ("DOB:" in str(collected_data)) and ("--" not in str(collected_data)):
+                    if ("DOB:" in str(collected_data)) and (
+                        "--" not in str(collected_data)
+                    ):
                         collected_data = collected_data.replace("DOB:", "")
                         dateList = collected_data.split(" ")
                         monthStr = str(dateList[0])
@@ -741,7 +781,9 @@ def scrapeFighterData():
                 fighters_dataframe.loc[df_len] = data
 
         if "Name" in fighters_dataframe.columns:
-            fighters_dataframe["Name"] = fighters_dataframe["Name"].map(clean_fighter_name)
+            fighters_dataframe["Name"] = fighters_dataframe["Name"].map(
+                clean_fighter_name
+            )
 
         fighters_dataframe.to_csv("data/FighterData.csv")
 
@@ -750,5 +792,5 @@ def scrapeFighterData():
 
 
 if __name__ == "__main__":
-    scrapePastFights(start_date="1/1/2010")
+    scrapePastFights(start_date="1/1/2010", end_date="31/1/2021")
     scrapeFighterData()
