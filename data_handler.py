@@ -1,5 +1,6 @@
 import datetime
 import pandas
+from tqdm import tqdm
 from typing import Optional, Union
 
 from exceptions import MinFightsException, MissingDataException
@@ -9,6 +10,7 @@ from globals import (
     RESULTS_CSV,
     STATS_CSV,
     TRAINING_DATA_CSV,
+    VERBOSE,
 )
 
 
@@ -129,7 +131,9 @@ class Data:
 
         if i <= min_fights:
             # doesn't allow the fighter to be compared if they have had fewer than min_fights fights
-            raise MinFightsException(f"Fighter {name} had fewer than {min_fights} fights at {date}")
+            raise MinFightsException(
+                f"Fighter {name} had fewer than {min_fights} fights at {date}"
+            )
 
         # calculates the stats for the fighter, averaged over the total time they have spent in fights (per minute)
         knockdowns_pm = round((knockdown / (time / 60)), 4)
@@ -181,14 +185,16 @@ class Data:
                 The minimum number of fights a fighter must have had to be considered for training.
                 Default to MIN_FIGHTS from globals.py
         """
-        if (
-            not self.fight_results or
-            not self.fight_stats or
-            not self.fighter_data
+        if any(
+            [
+                df is None or len(df) == 0
+                for df in [self.fight_results, self.fight_stats, self.fighter_data]
+            ]
         ):
             raise MissingDataException()
 
-        if min_fights is None: min_fights = MIN_FIGHTS
+        if min_fights is None:
+            min_fights = MIN_FIGHTS
 
         training_data = pandas.DataFrame(
             columns=[
@@ -240,7 +246,12 @@ class Data:
         all_data = list()
 
         # loop through fight results and find the stats for each of the fighters from their n prior fights
-        for index, row in self.fight_results.iterrows():
+        for _, row in tqdm(
+            self.fight_results.iterrows(),
+            total=len(self.fight_results),
+            desc="Creating training data",
+            unit="fight",
+        ):
             date = str(row["Date"])
             days_since_fight = calculate_days_since(
                 date.split("/")[0], date.split("/")[1], date.split("/")[2]
@@ -254,21 +265,24 @@ class Data:
 
                 # finds the stats of the two fighters prior to the date of the given fight occuring
                 try:
-                    fighter1_useful_data = self.find_fighter_stats(name1, date, min_fights)
-                    fighter2_useful_data = self.find_fighter_stats(name2, date, min_fights)
+                    fighter1_useful_data = self.find_fighter_stats(
+                        name1, date, min_fights
+                    )
+                    fighter2_useful_data = self.find_fighter_stats(
+                        name2, date, min_fights
+                    )
                 except Exception as e:
-                    print(f"Skipping fight: {e}")
+                    if VERBOSE:
+                        tqdm.write(f"Skipping fight: {e}")
                     continue
 
                 # one-hot array describing the outcome of the fight (win, loss, draw)
-                result_array, opposite_result_array = [0., 0., 0.], [0., 0., 0.]
-                result_array[result - 1] = 1.
-                opposite_result_array[2 if result == 3 else result % 2] = 1.
+                result_array, opposite_result_array = [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]
+                result_array[result - 1] = 1.0
+                opposite_result_array[2 if result == 3 else result % 2] = 1.0
 
                 # concatenates the full training row with the data from both fighters and the 'one-hot' label array
-                full_list1 = (
-                    fighter1_useful_data + fighter2_useful_data + result_array
-                )
+                full_list1 = fighter1_useful_data + fighter2_useful_data + result_array
 
                 # training array is reversed to help the model generalise/reduce overfitting
                 full_list2 = (
@@ -279,9 +293,15 @@ class Data:
                 all_data.append(full_list2)
 
         # add training data to the dataframe
-        for data in all_data:
+        for data in tqdm(all_data, desc="Building training dataframe", unit="row"):
             df_len = len(training_data)
             training_data.loc[df_len] = data
 
         training_data.to_csv(TRAINING_DATA_CSV, index=False)
         self.training_data = load_csv(TRAINING_DATA_CSV)
+
+
+if __name__ == "__main__":
+    data = Data()
+    data.create_training_data()
+    print(f"Training data length: {len(data.training_data)}")
