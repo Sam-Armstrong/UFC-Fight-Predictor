@@ -102,6 +102,7 @@ def evaluate(
     device: torch.device,
     data_loader: DataLoader,
     criterion: nn.Module,
+    is_transformer: bool = False,
 ) -> tuple[float, float]:
     """
     Evaluates the performance of a model on a data loader.
@@ -126,7 +127,7 @@ def evaluate(
     total = 0
 
     with torch.no_grad():
-        if transformer_model:
+        if is_transformer:
             for batch in data_loader:
                 fighter1, fighter2, mask1, mask2, labels = [
                     tensor.to(device) for tensor in batch
@@ -157,6 +158,8 @@ def train_ff(
     batch_size: int,
     learning_rate: float,
     val_fraction: float,
+    weight_decay: float,
+    dropout: float,
 ) -> None:
     """
     Train the model using the training data and cross-entropy loss.
@@ -174,6 +177,10 @@ def train_ff(
             The learning rate to use.
         val_fraction: float
             The fraction of the training data to use for validation.
+        weight_decay: float
+            L2 regularization strength passed to the Adam optimizer.
+        dropout: float
+            Dropout probability applied within the model.
     """
     device = get_device()
     tqdm.write(f"Using device: {device}")
@@ -198,9 +205,13 @@ def train_ff(
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
-    model = model().to(device)
+    model = model(dropout=dropout).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=weight_decay,
+    )
 
     start_time = time.time()
     epoch_bar = tqdm(range(num_epochs), desc="Training", unit="epoch")
@@ -219,7 +230,9 @@ def train_ff(
             optimizer.step()
             train_loss += loss.item()
 
-        val_loss, val_accuracy = evaluate(model, device, val_loader, criterion)
+        val_loss, val_accuracy = evaluate(
+            model, device, val_loader, criterion, is_transformer=False
+        )
         epoch_bar.set_postfix(
             train_loss=f"{train_loss / len(train_loader):.4f}",
             val_loss=f"{val_loss:.4f}",
@@ -238,6 +251,8 @@ def train_transformer(
     batch_size: int,
     learning_rate: float,
     val_fraction: float,
+    weight_decay: float,
+    dropout: float,
 ) -> None:
     device = get_device()
     tqdm.write(f"Using device: {device}")
@@ -269,9 +284,13 @@ def train_transformer(
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
 
-    model = model(max_fights=training_data["max_fights"]).to(device)
+    model = model(max_fights=training_data["max_fights"], dropout=dropout).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=weight_decay,
+    )
 
     start_time = time.time()
     epoch_bar = tqdm(range(num_epochs), desc="Training transformer", unit="epoch")
@@ -290,7 +309,9 @@ def train_transformer(
             optimizer.step()
             train_loss += loss.item()
 
-        val_loss, val_accuracy = evaluate(model, device, val_loader, criterion)
+        val_loss, val_accuracy = evaluate(
+            model, device, val_loader, criterion, is_transformer=True
+        )
         epoch_bar.set_postfix(
             train_loss=f"{train_loss / len(train_loader):.4f}",
             val_loss=f"{val_loss:.4f}",
@@ -348,6 +369,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="regenerate training data before training",
     )
+    parser.add_argument(
+        "--weight-decay",
+        type=float,
+        default=1e-3,
+        help="L2 regularization strength for Adam (default: 1e-3)",
+    )
+    parser.add_argument(
+        "--dropout",
+        type=float,
+        default=0.0,
+        help="dropout probability (default: 0.0, use 0.1 for transformer)",
+    )
     return parser.parse_args()
 
 
@@ -373,4 +406,6 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
         val_fraction=args.val_fraction,
+        weight_decay=args.weight_decay,
+        dropout=args.dropout,
     )
