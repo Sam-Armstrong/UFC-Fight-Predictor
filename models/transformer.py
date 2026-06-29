@@ -55,13 +55,18 @@ class TransformerModel(nn.Module):
             dropout=dropout,
             batch_first=True,
             activation=nn.functional.gelu,
+            bias=False,
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer,
+            num_layers=num_layers,
+            enable_nested_tensor=False,
+        )
         self.classifier = nn.Sequential(
-            nn.Linear(d_model * 2, d_model),
+            nn.Linear(d_model * 2, d_model, bias=False),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(d_model, num_classes),
+            nn.Linear(d_model, num_classes, bias=False),
         )
 
     def encode_fighter(

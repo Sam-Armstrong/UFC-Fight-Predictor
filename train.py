@@ -372,14 +372,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--weight-decay",
         type=float,
-        default=1e-3,
-        help="L2 regularization strength for Adam (default: 1e-3)",
+        default=1e-4,
+        help="L2 regularization strength for Adam (default: 1e-4)",
     )
     parser.add_argument(
         "--dropout",
         type=float,
-        default=0.0,
-        help="dropout probability (default: 0.0, use 0.1 for transformer)",
+        default=0.2,
+        help="dropout probability (default: 0.2)",
     )
     return parser.parse_args()
 
