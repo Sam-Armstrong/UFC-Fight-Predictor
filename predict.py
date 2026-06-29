@@ -19,10 +19,9 @@ class FightPredictor:
     def __init__(self, model: torch.nn.Module) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model().to(self.device)
-        self.model_path = Path("saved") / f"{model.__class__.__name__}.pt"
-        self.normalization_path = (
-            Path("saved") / f"{model.__class__.__name__}_normalization.pt"
-        )
+        model_name = self.model.__class__.__name__
+        self.model_path = Path("saved") / f"{model_name}.pt"
+        self.normalization_path = Path("saved") / f"{model_name}_normalization.pt"
         self.means = torch.zeros(INPUT_SIZE)
         self.stds = torch.ones(INPUT_SIZE)
         self._load_artifacts()
@@ -124,4 +123,5 @@ if __name__ == "__main__":
         if fighter2.lower() in break_works:
             break
 
-        print(predictor.predict_fighters(data, fighter1, fighter2, str(date.today())))
+        result = predictor.predict_fighters(data, fighter1, fighter2, str(date.today()))
+        print(f"{fighter1} Win: {result['Win']:.2f}, {fighter1} Loss: {result['Loss']:.2f}, Draw: {result['Draw']:.2f}")
