@@ -1,9 +1,11 @@
 FIGHTER_DATA_CSV = "data/FighterData.csv"
 RESULTS_CSV = "data/FightResults.csv"
 STATS_CSV = "data/FightStats.csv"
-TRAINING_DATA_CSV = "data/TrainingData.csv"
+STANDARD_TRAINING_DATA_PATH = "data/StandardTrainingData.pt"
+TRANSFORMER_STANDARD_TRAINING_DATA_PATH = "data/TransformerTrainingData.pt"
 
 MIN_FIGHTS = 3
+MAX_FIGHTS = 8
 VERBOSE = False
 
 FEATURE_COLUMNS = [
@@ -51,3 +53,27 @@ FEATURE_COLUMNS = [
 LABEL_COLUMNS = ["Win", "Loss", "Draw"]
 INPUT_SIZE = len(FEATURE_COLUMNS)
 NUM_CLASSES = len(LABEL_COLUMNS)
+
+TRANSFORMER_FEATURE_COLUMNS = [
+    "Height",
+    "Reach",
+    "Age",
+    "Knockdowns PM",
+    "Gets Knocked Down PM",
+    "Sig Strikes Landed PM",
+    "Sig Strikes Attempted PM",
+    "Sig Strikes Absorbed PM",
+    "Strikes Landed PM",
+    "Strikes Attempted PM",
+    "Strikes Absorbed PM",
+    "Strike Accuracy",
+    "Takedowns PM",
+    "Takedown Attempts PM",
+    "Gets Taken Down PM",
+    "Submission Attempts PM",
+    "Clinch Strikes PM",
+    "Clinch Strikes Taken PM",
+    "Ground Strikes PM",
+    "Ground Strikes Taken PM",
+]
+TRANSFORMER_FEATURE_SIZE = len(TRANSFORMER_FEATURE_COLUMNS)
