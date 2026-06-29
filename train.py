@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset, random_split
+from tqdm import tqdm
 from typing import Union
 
 from globals import (
@@ -69,8 +70,8 @@ def save_artifacts(
         {"means": means, "stds": stds},
         normalization_path,
     )
-    print(f"Saved model to {model_path}")
-    print(f"Saved normalization stats to {normalization_path}")
+    tqdm.write(f"Saved model to {model_path}")
+    tqdm.write(f"Saved normalization stats to {normalization_path}")
 
 
 # Training #
@@ -142,6 +143,7 @@ def train(
             The fraction of the training data to use for validation.
     """
     device = get_device()
+    tqdm.write(f"Using device: {device}")
 
     features = torch.tensor(
         training_data[FEATURE_COLUMNS].values,
@@ -174,7 +176,8 @@ def train(
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     start_time = time.time()
-    for epoch in range(num_epochs):
+    epoch_bar = tqdm(range(num_epochs), desc="Training", unit="epoch")
+    for _ in epoch_bar:
         model.train()
         train_loss = 0.0
 
@@ -190,14 +193,13 @@ def train(
             train_loss += loss.item()
 
         val_loss, val_accuracy = evaluate(model, device, val_loader, criterion)
-        print(
-            f"Epoch {epoch + 1}/{num_epochs} | "
-            f"train loss: {train_loss / len(train_loader):.4f} | "
-            f"val loss: {val_loss:.4f} | "
-            f"val accuracy: {val_accuracy:.2f}%"
+        epoch_bar.set_postfix(
+            train_loss=f"{train_loss / len(train_loader):.4f}",
+            val_loss=f"{val_loss:.4f}",
+            val_acc=f"{val_accuracy:.2f}%",
         )
 
-    print(f"Finished training in {round(time.time() - start_time, 1)} seconds")
+    tqdm.write(f"Finished training in {round(time.time() - start_time, 1)} seconds")
     model_path = Path("saved") / f"{model.__class__.__name__}.pt"
     normalization_path = Path("saved") / f"{model.__class__.__name__}_normalization.pt"
     save_artifacts(model, model_path, means, stds, normalization_path)
