@@ -51,9 +51,9 @@ class Data:
         self.fighter_data = load_csv(FIGHTER_DATA_CSV)
         self.training_data = load_csv(TRAINING_DATA_CSV)
 
-    def find_fighter_stats(self, name: str, date: str, min_fights: int = 3) -> list:
+    def find_fighter_stats(self, name: str, date: str, min_fights: int = 3) -> list[float]:
         """
-        Find the average stats of a fighter for the four most recent fights they had prior to a given date
+        Find the average stats of a fighter for the n most recent fights they had prior to a given date
         """
         # calculates the number of days since the fight took place
         if "/" in date:
@@ -175,7 +175,11 @@ class Data:
 
         return fighter_useful_data
 
-    def create_training_data(self, min_fights: Optional[int] = None):
+    def create_training_data(
+        self,
+        min_fights: Optional[int] = None,
+        save_path: Optional[str] = None,
+    ) -> None:
         """
         Creates a set of training data based upon the statistics of each fighter prior to a given fight,
         using the result of the fight as the training label
@@ -184,6 +188,9 @@ class Data:
             min_fights: int or None
                 The minimum number of fights a fighter must have had to be considered for training.
                 Default to MIN_FIGHTS from globals.py
+            save_path: str or None
+                The path to save the training data to.
+                Default to TRAINING_DATA_CSV from globals.py
         """
         if any(
             [
@@ -297,8 +304,9 @@ class Data:
             df_len = len(training_data)
             training_data.loc[df_len] = data
 
-        training_data.to_csv(TRAINING_DATA_CSV, index=False)
-        self.training_data = load_csv(TRAINING_DATA_CSV)
+        if save_path is None: save_path = TRAINING_DATA_CSV
+        training_data.to_csv(save_path, index=False)
+        self.training_data = load_csv(save_path)
 
 
 if __name__ == "__main__":
