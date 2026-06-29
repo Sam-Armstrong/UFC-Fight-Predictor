@@ -15,7 +15,7 @@ class LinearModel(nn.Module):
         num_classes: int = NUM_CLASSES,
     ):
         super().__init__()
-        self.linear = nn.Linear(input_size, num_classes)
+        self.linear = nn.Linear(input_size, num_classes, bias=False)
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         return self.linear(features)
