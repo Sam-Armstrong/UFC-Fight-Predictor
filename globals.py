@@ -49,6 +49,5 @@ FEATURE_COLUMNS = [
     "Ground Strikes Taken PM 2",
 ]
 LABEL_COLUMNS = ["Win", "Loss", "Draw"]
-OUTCOME_NAMES = ["fighter 1 win", "fighter 1 loss", "draw"]
 INPUT_SIZE = len(FEATURE_COLUMNS)
 NUM_CLASSES = len(LABEL_COLUMNS)
