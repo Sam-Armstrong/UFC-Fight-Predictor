@@ -216,4 +216,5 @@ if __name__ == "__main__":
             break
 
         result = predictor.predict_fighters(data, fighter1, fighter2, str(date.today()))
-        print(f"{fighter1} Win: {result['Win']:.2f}, {fighter1} Loss: {result['Loss']:.2f}, Draw: {result['Draw']:.2f}")
+        percentages = {label: value * 100 for label, value in result.items()}
+        print(f"{fighter1} Win: {percentages['Win']:.2f}%, {fighter1} Loss: {percentages['Loss']:.2f}%, Draw: {percentages['Draw']:.2f}%")
