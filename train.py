@@ -214,6 +214,8 @@ def train_ff(
     )
 
     start_time = time.time()
+    best_val_loss = float("inf")
+    best_val_accuracy = 0.0
     epoch_bar = tqdm(range(num_epochs), desc="Training", unit="epoch")
     for _ in epoch_bar:
         model.train()
@@ -233,6 +235,8 @@ def train_ff(
         val_loss, val_accuracy = evaluate(
             model, device, val_loader, criterion, is_transformer=False
         )
+        best_val_loss = min(best_val_loss, val_loss)
+        best_val_accuracy = max(best_val_accuracy, val_accuracy)
         epoch_bar.set_postfix(
             train_loss=f"{train_loss / len(train_loader):.4f}",
             val_loss=f"{val_loss:.4f}",
@@ -240,6 +244,9 @@ def train_ff(
         )
 
     tqdm.write(f"Finished training in {round(time.time() - start_time, 1)} seconds")
+    tqdm.write(
+        f"Best val loss: {best_val_loss:.4f}, best val accuracy: {best_val_accuracy:.2f}%"
+    )
     model_path = Path("saved") / f"{model.__class__.__name__}.pt"
     normalization_path = Path("saved") / f"{model.__class__.__name__}_normalization.pt"
     save_artifacts(model, model_path, means, stds, normalization_path)
@@ -293,6 +300,8 @@ def train_transformer(
     )
 
     start_time = time.time()
+    best_val_loss = float("inf")
+    best_val_accuracy = 0.0
     epoch_bar = tqdm(range(num_epochs), desc="Training transformer", unit="epoch")
     for _ in epoch_bar:
         model.train()
@@ -312,6 +321,8 @@ def train_transformer(
         val_loss, val_accuracy = evaluate(
             model, device, val_loader, criterion, is_transformer=True
         )
+        best_val_loss = min(best_val_loss, val_loss)
+        best_val_accuracy = max(best_val_accuracy, val_accuracy)
         epoch_bar.set_postfix(
             train_loss=f"{train_loss / len(train_loader):.4f}",
             val_loss=f"{val_loss:.4f}",
@@ -319,6 +330,9 @@ def train_transformer(
         )
 
     tqdm.write(f"Finished training in {round(time.time() - start_time, 1)} seconds")
+    tqdm.write(
+        f"Best val loss: {best_val_loss:.4f}, best val accuracy: {best_val_accuracy:.2f}%"
+    )
     model_name = model.__class__.__name__
     save_artifacts(
         model,
