@@ -14,7 +14,7 @@ from globals import (
     LABEL_COLUMNS,
     TRAINING_DATA_CSV,
 )
-from helpers import get_device
+from helpers import get_device, resolve_model
 from models import MODELS
 
 
@@ -25,22 +25,6 @@ def load_training_data(path: Union[str, Path] = TRAINING_DATA_CSV) -> pandas.Dat
     if "Unnamed: 0" in dataframe.columns:
         dataframe = dataframe.drop(columns=["Unnamed: 0"])
     return dataframe
-
-def resolve_model(model_name: str) -> nn.Module:
-    """
-    Resolve the model class from the model name.
-    """
-    if model_name in MODELS:
-        return MODELS[model_name]
-    else:
-        for model_class in MODELS.values():
-            if model_class.__name__ == model_name:
-                return model_class
-
-        raise ValueError(
-            f"Unknown model {model_name!r}. "
-            f"Available models: {', '.join(sorted(MODELS))}"
-        )
 
 def save_artifacts(
     model: nn.Module,
@@ -247,7 +231,7 @@ if __name__ == "__main__":
     training_data = load_training_data()
     train(
         training_data,
-        resolve_model(args.model),
+        resolve_model(args.model, MODELS),
         num_epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
