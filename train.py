@@ -20,11 +20,13 @@ from models import MODELS
 
 # Helpers #
 
+
 def load_training_data(path: Union[str, Path] = TRAINING_DATA_CSV) -> pandas.DataFrame:
     dataframe = pandas.read_csv(path)
     if "Unnamed: 0" in dataframe.columns:
         dataframe = dataframe.drop(columns=["Unnamed: 0"])
     return dataframe
+
 
 def save_artifacts(
     model: nn.Module,
@@ -59,6 +61,7 @@ def save_artifacts(
 
 
 # Training #
+
 
 def evaluate(
     model: nn.Module,
@@ -100,6 +103,7 @@ def evaluate(
             total += batch_labels.size(0)
 
     return total_loss / total, (correct / total) * 100
+
 
 def train(
     training_data: pandas.DataFrame,
@@ -190,6 +194,7 @@ def train(
 
 
 # Main #
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a fight outcome model.")

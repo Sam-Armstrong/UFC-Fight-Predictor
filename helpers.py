@@ -12,6 +12,7 @@ def get_device() -> torch.device:
     else:
         return torch.device("cpu")
 
+
 def resolve_model(
     model_name: str,
     models: dict[str, torch.nn.Module],
