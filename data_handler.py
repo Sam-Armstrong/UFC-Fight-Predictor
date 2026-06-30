@@ -331,6 +331,9 @@ class Data:
             name2 = str(row["Fighter 2"]).strip()
             result = int(row["Result"])
 
+            # skip no contest fights
+            if result == 4: continue
+
             try:
                 sequence1 = self.get_fight_sequence(
                     name1, date, min_fights, max_fights
@@ -432,7 +435,7 @@ class Data:
             name2 = str(row["Fighter 2"]).strip()
             result = int(row["Result"])
 
-            if date > "01/01/2010":
+            if date > "01/01/2010" and result != 4:
 
                 # finds the stats of the two fighters prior to the date of the given fight occuring
                 try:
@@ -443,8 +446,7 @@ class Data:
                         name2, date, min_fights
                     )
                 except Exception as e:
-                    if VERBOSE:
-                        tqdm.write(f"Skipping fight: {e}")
+                    if VERBOSE: tqdm.write(f"Skipping fight: {e}")
                     continue
 
                 label = result - 1

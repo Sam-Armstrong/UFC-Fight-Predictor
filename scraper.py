@@ -8,7 +8,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 from tqdm import tqdm
 
-from globals import FIGHTER_DATA_CSV, RESULTS_CSV, STATS_CSV
+from globals import FIGHTER_DATA_CSV, RESULTS_CSV, STATS_CSV, VERBOSE
 
 
 def parse_site_event_date(date_text):
@@ -500,7 +500,9 @@ def scrape_past_fights(start_date=None, end_date=None):
                             r = 1
                         if x == "D":
                             r = 3
-                            tqdm.write("Draw!")
+                        if x == "NC":
+                            r = 4
+                            if VERBOSE: tqdm.write(f"No Contest: {name1} vs {name2}")
 
                 date_element = soup.find_all("a", href=True, attrs={"class": "b-link"})[
                     0
@@ -790,5 +792,5 @@ def scrape_fighter_data():
 
 
 if __name__ == "__main__":
-    scrape_past_fights(start_date="1/1/2010", end_date="31/1/2021")
+    scrape_past_fights(start_date="1/1/2010")
     scrape_fighter_data()
